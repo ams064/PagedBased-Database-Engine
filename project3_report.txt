@@ -1,0 +1,123 @@
+1. Basic information
+Team #:1
+Github Repo Link::https://github.com/UCI-Chenli-teaching/cs222p-winter20-team-1.git
+Student 1 UCI NetID:somania1
+Student 1 Name:Amit Somani
+
+
+2. Meta-data page in an index file
+- The meta data/hidden page includes the following details :
+- The performance counter. (ixReadPageCounter, ixWritePageCounter, ixAppendPageCounter)
+- The page number of the root of the B+ Tree.
+
+
+3. Index Entry Format
+- Each indes is stored as a composite key pair of <Key, RID>.
+- <Key1, RID 1>,<Key2, RID2>,...<Keyn, RIDn>.
+- The whole pair is treated as the key, and when we need to get just the rid from the key, we can easily get it.
+- The CompositeKey class in ix.h handles this.
+
+- Also, there's no need to store the index as  <CompositeKey, RID>. Because anyways, CompositeKey is a combination of
+  the given key and rid. This serves 2 purpose. 
+    1) Avoids redundancy of storing rid twice.
+    2) Duplicate keys a=are handled efficiently as discussed in the class by Prof. Chen Li.
+
+
+4. Page Format
+- Show your internal-page (non-leaf node) design.
+- Index entry stores the pointer to left and right children with the key.
+- <p1>Key 1<p2>Key 2<p3>Key 3<p4> ...
+- Here the Key is a composite key of <Key that is passed, (rid.pageNum, rid.slotNum)>.
+- The B+ tree has the following constraint imposed :
+
+    k1 < x < y <= k2,
+
+    i.e. all the entries less than or equal to "Key n" will be on the left and all the entries,
+    greater than "Key n" are on the right.
+
+   A sample print following the above design is :
+   {
+       "keys":["c:[(3,3)]"],
+       "children":[
+            {"keys":["a:[(1,1)]","b:[(2,2)]","c:[(3,3)]"]},
+            {"keys":["d:[(4,4)]","e:[(5,5)]"]}
+       ]
+   }
+
+   In above BTree, all the values less than equal to "c" are on the left and rest on the right.
+
+- Composite keys are compared in the following way:
+    - first compare the key values.
+    - if key values are same, compare rid.pageNum.
+    - if rid.pageNum are same, compare the rid.slotNum.
+
+  -------------------------------------------------------------
+ |P0<Key1,RID1>P1<Key2,RID2>P2<Key3,RID3>...<Keyn,RIDn>Pn     |
+ |                                                     ^- O   |
+ |                                                            |
+ |                                                            |
+ |                                                            |
+ |                                                            |
+ |                                                            |
+ |                                                            |
+ |                                                            |
+ |                                                            |
+ |----------------------------------------------------------- |
+ |                                                 |P|O|T|E|F |
+ -------------------------------------------------------------|
+F : FreeSpace in the pages (2 bytes unsigned short)
+E : number of entries in the leaf page. (2 bytes unsigned short)
+T : Type of node (leaf/internal) (2 bytes unsigned short).
+O : Ending offset of last entry in the page (2 bytes unsigned short).
+P : page number of the current node/page. (4 bytes int)
+
+- Show your leaf-page (leaf node) design.
+>>
+  -------------------------------------------------------------
+ |<Key1, RID1><Key2, RID2><Key3, RID3>....<Keyn, RIDn>        |
+ |                                                   ^- O     |
+ |                                                            |
+ |                                                            |
+ |                                                            |
+ |                                                            |
+ |                                                            |
+ |                                                            |
+ |                                                            |
+ |                                                            |
+ |----------------------------------------------------------- |
+ |                                               |S|P|O|T|E|F |
+ -------------------------------------------------------------|
+F : FreeSpace in the pages (2 bytes unsigned short)
+E : number of entries in the leaf page. (2 bytes unsigned short)
+T : Type of node (leaf/internal) (2 bytes unsigned short).
+O : Ending offset of last entry in the page (2 bytes unsigned short).
+P : page number of the current node/page. (4 bytes int)
+S : Next sibling page/node of the current page/node. (4 bytes int).
+
+
+5. Implementation Detail
+-Have you added your own source file (.cc or .h)?
+>> No.
+
+- Have you implemented non-lazy deletion? Choose Yes or No: 
+>> Yes, I have implemented non-lazy delete with only merge feature.
+
+- Have you implemented duplicated key handling that can span multiple pages? Choose Yes or No: 
+>> Yes, I have handled duplicated key that can span multiple pages.
+
+- If yes, please explain briefly how you have implemented this feature.
+
+>> The duplicate key handling can be done efficiently by using the CompositeKey defined in Q3.
+   Since RID pairs are never same, the combination of the actual key and rid forms a unique key. The comparison of keys
+   is handled by separate CompositeKey class defined in ix.h and explained in Q4.
+
+- Other implementation details:
+>> For IX Scan Iterator, I maintain 1 page buffer, which reduced number of read disk I/Os significantly because consecutive reads from the 
+same page will not result in reading the page again from the disk. The only time, we would re-read the same page is when deleteEntry(...) is called
+inside scan. This will be detected and page will be re-read from the disk, since the copy that scan iterator has will be invalidated.
+
+
+6. Other (optional)
+>> As discussed on the piazza, deleteEntry(..) implementation with only merge features has some edge cases. Which are detected and a lazy deletion is done
+  to avoid breaking of BTree design.
+

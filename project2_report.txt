@@ -1,0 +1,95 @@
+1. Basic information
+Team #:1
+Github Repo Link:https://github.com/UCI-Chenli-teaching/cs222p-winter20-team-1.git
+Student 1 UCI NetID:somania1@uci.edu
+Student 1 Name:Amit Somani
+
+2. Meta-data
+- Meta Data for Tables table :
+Tables (table-id:int, table-name:varchar(50), file-name:varchar(50), version:int)
+>> version : latest version of the table schema
+
+- Meta Data for Columns table :
+Columns(table-id:int, column-name:varchar(50), column-type:int, column-length:int, column-position:int, version:int, validity:int)
+
+version -> represnts version of the schema each column is present into
+validity ->tells us wether a given columns is still valid as per the latest schema. If not valid that means it was dropped in the latest schema. This is used in add/drop attribute implementation.
+
+3. Internal Record Format
+>> For each given RID, we get the offset (start of record ) from page directory using the slotnumber and pagenumber values for the RID.
+Once we get the record offset, we use the attribute name to find the index of attribute in recordDescriptor vector.
+lets say for the above example, we need to find the value of field "Age", the index of which is 1 in recordDescriptor vector.
+
+To access the fields data : we find the field offset value from = record_offset + 1*sizeof(short)
+If the field offset value points to NULL_POINT, then the field value is null, else we jump to the offset pointed by field offset and read the bytes according to the type of field.
+In this we will read sizeof(int) bytes for "Age" field.
+
+Since we are not going through each record and its field, this method allows us to get the required field access in O(1) time.
+
+- Describe how you store a VarChar field.
+>> The varhar is stored as <4 bytes of length> <character bytes>
+
+
+4. Page Format
+
+- -------------------------------------------------------------
+ |<Record 1><Record 2><Record 3> ...<Record N>|               |
+ |                                            ^-> R           |
+ |                                                            |
+ |                                                            |
+ |                                                            |
+ |                                                            |
+ |                                                            |
+ |                                                            |
+ |                                                            |
+ |                                                            |
+ | D  ------------------------------------------------------- |
+ |   -> |...|...|Updated_flag Record_size Record_offset|F|R|D |
+ -------------------------------------------------------------|
+R : Pointer to end of last record in the file.
+D : Pointer to last slot in the Page directory.
+F : number of free slots in the page, this is initiallly 0, but everytime we delete a record we increment it by 1.
+Page Directory : First 3 slots contains D and R pointers and F pointers.
+                 After the first 2 slots, each slots has size equal to that of 3 shorts.
+                 1st short contains offset for record with given RID.
+                 2nd short contains the size of the record with given RID.
+                 3rd short contains the flag to check if the record has been updated. The updated flag will only be set when the record has been moved to other page after updation.
+
+
+
+5. File Format
+-| Hidden Page | Page 1 | Page 2 | ... | ... |
+
+6. Describe the following operation logic.
+
+- Update a record
+>> For updating a record we have multiple cases .
+Case 1 : If the updated record is shorter than the original, we update it in the same page and move rest of the records towards left by (original sizee - updated size).
+Case 2 : Original size < new size, in this case following cases arise.
+Case 2.a : If the page has enough space to store the bigger new record. We move the records after the given record towards right and update the record in place.
+Case 2.b : The page doesnt have a enough space, we find a new page to fit the new bigger record. Place a tombstone pointing to the rid of this new page where the record is actually inserted.
+We also use a "update flag " in each slot of page directory to mark wether the record is pointing to the tombstone or the actual data.
+The tombstone size is 6 bytes : 4 bytes for pagenum and 2 for slotnum.
+Case 3 : This comes when we place tombstone and it may happen that the size of tombstone is bigger than the original record. To handle this case, while inserting the data we make sure that size of the record
+is atleast = MIN_RECORD_SIZE = 6 bytes. If not then we append some extra bytes to make it 6 bytes.
+
+
+- Delete a record
+>> To check if the record is previously deleted we check the offset in the corresponding slot page directory. If offset == DELETED, the record was deleted.
+>> To delete a record, we move all the records after the given record to the left  by the size of the record being deleted. After this we also chaneg slot offsets of the all the record that were moved to the left.
+>> If the given record was previously updated, then we follow the tombstone trail to find the record and delete the record. We also delete all the tombstone, marking the slots of the page as free. So that these slots can be re used later.
+
+- Scan
+- Using initializaeScanIterator(...) function to store the all the scan condition variables.
+- getNextRecord() calls getNextValidRecord() which iterates over all the pages and all the slots inside the page to check for a record which meets the given criteria.
+- Using readAttribue() function to get the value of the condition variable from the record.
+- Using readAttributes(...) function to get all the attributes (mentioned in the attributeNames) in the same order as mentioned from the record.
+
+- For tables with add and drop features implemented. I also make sure to generate the result of a older schema in terms of the latest schema.
+
+7. Implementation Detail
+- Add/Drop Attribute : We can add/drop an attribute by creating a new schema for the table and inserting it in the Columns table, at the same time we will also update the latest version number for the table in the Tables table. When inserting a new record, we will get the schema corresponding to latest version and insert it. While reading a record, we will first get the record version from the given RID and then we get the corresponding table schema for that particular schema version. To make sure that we return the data in the latest schema format, we have to comapre the 2 schemas and return only the valid columns among them.
+
+8. Other (optional)
+- I have also implemented a 1 page buffer to make sequential reads and inserts faster. This would allow the system to only make an I/O when the page has been completely read or has no space for inserting a record.
+
