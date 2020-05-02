@@ -1,3 +1,14 @@
+***Project Overview***
+
+1) A fully functional single user Database System.
+2) Includes a paged based file management system for storing and reading database records in the disk. (Heap Storage Schema). (pfm.cc and rbfm.cc)
+3) Relation manager is used to create tables and system catalog. It includes support for adding/dropping columns in a table. (rm.cc)
+4) The DB supports the creation of indexes using disk-based B+ tree implementation. (ix.cc)
+5) The Database supports blocked nested join, grace hash join and index-based join, filter and projection queries. (qe.cc)
+6) The Database supports complex queries like group by and aggregation. (qe.cc)
+
+**************************************************************************************************************************************
+
 By default you should not change those functions of pre-defined in the given .h files.
 If you think some changes are really necessary, please contact us first.
 
