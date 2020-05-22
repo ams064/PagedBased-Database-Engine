@@ -284,7 +284,7 @@ public:
         this->data = data;
     }
 
-    ~Node() { 
+    virtual ~Node() { 
         this->data = NULL;
     }
 
