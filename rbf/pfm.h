@@ -104,7 +104,7 @@ public:
     std::string fileName;
 
     FileHandle();                                                       // Default constructor
-    ~FileHandle();                                                      // Destructor
+    virtual ~FileHandle();                                              // Destructor
 
     virtual void openFile(const std::string& fileName);
     virtual void closeRoutine();
